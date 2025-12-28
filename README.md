@@ -1,111 +1,116 @@
-🤖 EV3 Line Follower + Can Search (Ultrasonic Arc Scan)
+# 🤖 EV3 Line Follower + Can Search (Ultrasonic Arc Scan)
 
-A LEGO Mindstorms EV3 robot programmed in Python (ev3dev) that:
+![Python](https://img.shields.io/badge/Python-ev3dev-blue)
+![Robot](https://img.shields.io/badge/LEGO-EV3-black)
+![Control](https://img.shields.io/badge/Control-PID-green)
+![Sensors](https://img.shields.io/badge/Sensors-2x%20Color%20%2B%20Ultrasonic-orange)
+![License](https://img.shields.io/badge/License-MIT-brightgreen)
 
-follows a line using a PID controller with two color sensors (COL-REFLECT)
+[![Demo video](https://img.youtube.com/vi/Z8Ef_XxjmJM/hqdefault.jpg)](https://youtube.com/shorts/Z8Ef_XxjmJM?feature=share)
 
-detects the end of the line using a stable white-white condition
+A LEGO Mindstorms **EV3** robot programmed in **Python (ev3dev)** that:
+- follows a line using a **PID controller** with **two color sensors** (`COL-REFLECT`)
+- detects the **end of the line** using a stable *white-white* condition
+- runs an **interruptible ultrasonic arc scan** to search for a can/object
+- returns to the line using **motor encoders**, then resumes line following
 
-runs an interruptible ultrasonic arc scan to search for a can/object
+---
 
-returns to the line using motor encoders, then resumes line following
+## 🎥 Demo
+- **YouTube demo (Shorts)**: https://youtube.com/shorts/Z8Ef_XxjmJM?feature=share  
+- (Optional) Add more links in `videos/links.md`
 
-🎥 Demo
+---
 
-YouTube demo (Shorts): https://youtube.com/shorts/Z8Ef_XxjmJM?feature=share
+## ✨ Key Features
+- ✅ **PID line following** (P/I/D) with **integral clamping** to avoid windup
+- ✅ **Gap vs. end-of-line logic** using:
+  - `soglia_bianco` (white threshold)
+  - `CONTRAST_EPS` (sensor similarity check)
+  - `LINE_LOST_LIMIT` (time confirmation)
+- ✅ **Search behavior** at end-of-line:
+  - short move away from the end zone
+  - **arc scan** collecting `(angle, distance_cm)` samples
+  - detection of a **distance window** within a target range
+  - aim to the window center + short approach
+  - encoder-based return + resume line following
+- ✅ **Interruptible scan**: if the robot sees the line during scanning, it aborts and returns immediately to line-follow mode
 
-Extra links: video/links.md
+---
 
-📌 Files in this repo
+## 🧱 Hardware Setup
 
-Main program: src/main.py
+### Motors
+- Left motor: `outA`
+- Right motor: `outD`
 
-Report (PDF): docs/report EV3.pdf
+### Sensors
+- Color sensor (left): `in3` → `COL-REFLECT`
+- Color sensor (right): `in4` → `COL-REFLECT`
+- Ultrasonic sensor: `in2` → `US-DIST-CM`
 
-✨ Key Features
+> If your wiring/ports differ, update them at the top of `src/main.py`.
 
-PID line following (P/I/D) with integral clamping to avoid windup
-
-Gap vs. end-of-line logic using:
-
-soglia_bianco (white threshold)
-
-CONTRAST_EPS (sensor similarity check)
-
-LINE_LOST_LIMIT (time confirmation)
-
-Search behavior at end-of-line:
-
-short move away from the end zone
-
-arc scan collecting (angle, distance_cm) samples
-
-detection of a distance window within a target range
-
-aim to the window center + short approach
-
-encoder-based return + resume line following
-
-Interruptible scan: if the robot sees the line during scanning, it aborts and returns immediately to line-follow mode
-
-🧱 Hardware Setup
-
-Motors
-
-Left motor: outA
-
-Right motor: outD
-
-Sensors
-
-Color sensor (left): in3 → COL-REFLECT
-
-Color sensor (right): in4 → COL-REFLECT
-
-Ultrasonic sensor: in2 → US-DIST-CM
-
-If your wiring/ports differ, update them at the top of src/main.py.
-
-📁 Repository Structure
+---
 
 ev3-line-follower-can-search/
-README.md
-src/main.py
-docs/report EV3.pdf
-video/links.md
+├─ README.md
+├─ src/
+│ └─ main.py
+├─ docs/
+│ └─ report-ev3.pdf
+└─ videos/
+└─ links.md
 
-⚙️ How to Run (ev3dev)
 
-Copy the project to the EV3 (from your computer)
-scp -r ev3-line-follower-can-search robot@ev3dev.local
-:~/
 
-SSH into the EV3
-ssh robot@ev3dev.local
+---
 
-Run the script
-cd ev3-line-follower-can-search
-python3 src/main.py
+## ⚙️ How to Run (ev3dev)
 
+### 1) Copy the project to the EV3
+From your computer:
+```bash
+  scp -r ev3-line-follower-can-search robot@ev3dev.local:~/
+```
+### 2) SSH into the EV3
+```bash
+  ssh robot@ev3dev.local
+```
+### 3) Run the script
+```bash
+  cd ev3-line-follower-can-search
+  python3 src/main.py
+```
 If import ev3dev.ev3 fails, verify you are using an ev3dev image with the Python bindings installed.
 
 🧠 System Overview
+1) Line Following (PID)
 
-Line Following (PID)
+Reflected light is read from both sensors:
 
-Reads reflected light from both sensors.
+left_val = clLeft.value()
 
-Error: error = left_val - right_val
+right_val = clRight.value()
 
-PID correction: correction = Perror + Iintegral + D*derivative
+Error:
+
+error = left_val - right_val
+
+PID correction:
+
+correction = P*error + I*integral + D*derivative
 
 Motors run in run_direct() and are commanded via duty_cycle_sp.
 
-Integral clamping (INTEGRAL_LIM) reduces windup.
+Implementation notes:
 
-Correction cap (relative to base speed) improves stability at higher speeds.
+Integral clamping (INTEGRAL_LIM) reduces windup
 
-End-of-Line Detection (white-white stable)
+Correction cap (relative to base speed) improves stability at higher speeds
+
+2) End-of-Line Detection (white-white stable)
+
 The robot considers the line ended when:
 
 both sensors read white (> soglia_bianco)
@@ -116,7 +121,8 @@ stable for ~LINE_LOST_LIMIT * dt seconds
 
 Before confirming end-of-line, the robot performs a pivot recovery based on the last known error direction.
 
-Can/Object Search (Ultrasonic Arc Scan)
+3) Can/Object Search (Ultrasonic Arc Scan)
+
 Triggered after end-of-line is confirmed:
 
 Store start encoder positions
@@ -130,11 +136,10 @@ Detect a window of angles where distance falls inside [CAN_MIN_CM, CAN_MAX_CM]
 Aim to the window center and approach slightly
 
 Return to the start pose using encoders and resume line following
-Interruptibility: during scanning, if any color sensor detects the line again, the scan stops and the robot immediately returns to line-follow mode.
 
-🎛️ Parameters (Tuning Guide)
+✅ Interruptibility: during scanning, if any color sensor detects the line again, the scan stops and the robot immediately returns to line-follow mode.
 
-Line Following
+Line Following (list)
 
 baseline: base motor duty cycle (higher = faster, less stable)
 
@@ -152,7 +157,7 @@ CONTRAST_EPS: similarity for white-white (lower = stricter)
 
 LINE_LOST_LIMIT: samples to confirm end (higher = fewer false triggers)
 
-Search Behavior
+Search Behavior (list)
 
 CAN_MIN_CM, CAN_MAX_CM: distance range for target
 
@@ -166,9 +171,7 @@ DRIVE_SIGN: forward/backward sign
 
 SCALE (in return): encoder return correction factor
 
-🧪 Calibration Checklist
-
-White threshold (soglia_bianco): print sensor values on your track and choose a threshold separating black line vs white floor.
+White threshold (soglia_bianco): print sensor values on your track and choose a threshold clearly separating black line vs white floor.
 
 Turn calibration (K_TURN): adjust until turn_deg(90) produces ~90° on your surface.
 
@@ -188,12 +191,13 @@ Inaccurate turns/return → battery and friction matter; recalibrate K_TURN and 
 
 📄 Documentation
 
-Report (PDF): docs/report EV3.pdf
+Report (PDF): docs/report-ev3.pdf
 
 👤 Author
 
 Mounir Abbary
 GitHub: https://github.com/mounirabbary
+Linkedin: https://www.linkedin.com/in/mounirabbary/
 
 🧾 License
 
